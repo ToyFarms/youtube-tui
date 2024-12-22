@@ -2,12 +2,17 @@ from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widget import Widget
-from textual.widgets import Input, Label
+from textual.widgets import Input, Label, ListView
+
+import shelve
 
 from api import YoutubeAPI
 from model import YoutubeModel
 from view import YoutubeVideosView
 from controller import YoutubeController
+
+
+DEBUG_DATA = True
 
 
 class Youtube(App):
@@ -42,19 +47,22 @@ class Youtube(App):
 
     @work(exclusive=True)
     async def search(self, query: str) -> None:
-        videos = self.query_one(YoutubeVideosView)
+        video_list = self.query_one(YoutubeVideosView)
         input = self.query_one(Input)
         try:
-            videos.loading = True
+            video_list.loading = True
             input.disabled = True
-            await self.yt_controller.search_async(query)
+            if DEBUG_DATA:
+                with shelve.open("dummy_data.db", "r") as f:
+                    self.yt_model.search_results = f["videos"]
+            else:
+                await self.yt_controller.search_async(query)
         finally:
-            videos.loading = False
+            video_list.loading = False
             input.disabled = False
 
-        input.blur()
-        videos.focus()
-        videos.update_videos(self.yt_model.search_results)
+        video_list.focus()
+        video_list.update_videos(self.yt_model.search_results)
 
 
 if __name__ == "__main__":
