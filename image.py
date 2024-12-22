@@ -2,11 +2,11 @@ import sqlite3
 import requests
 import io
 import hashlib
+import aiohttp
 
 from PIL import Image
 from datetime import datetime
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 
 @dataclass
@@ -14,6 +14,51 @@ class NetworkImage:
     url: str
     width: int
     height: int
+
+    async def fetch_async(self, ignore_cache: bool = False) -> Image.Image:
+        cache_manager = ImageCache()
+
+        if not ignore_cache:
+            cached_data = cache_manager.get_cached_image(self.url)
+            if cached_data:
+                image_data, etag, last_modified = cached_data
+
+                headers = {}
+                if etag:
+                    headers["If-None-Match"] = etag
+                if last_modified:
+                    headers["If-Modified-Since"] = last_modified
+
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.head(
+                            self.url, headers=headers
+                        ) as head_response:
+                            if head_response.status == 304:
+                                return Image.open(io.BytesIO(image_data))
+                except aiohttp.ClientError:
+                    return Image.open(io.BytesIO(image_data))
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(self.url) as response:
+                response.raise_for_status()
+                image_data = await response.read()
+
+        img = Image.open(io.BytesIO(image_data))
+        if img.size != (self.width, self.height):
+            raise ValueError(
+                f"Image dimensions mismatch. Expected {self.width}x{self.height}, "
+                f"got {img.size[0]}x{img.size[1]}"
+            )
+
+        cache_manager.update_cache(
+            self,
+            image_data,
+            response.headers.get("ETag"),
+            response.headers.get("Last-Modified"),
+        )
+
+        return img
 
     def fetch(self, ignore_cache: bool = False) -> Image.Image:
         cache_manager = ImageCache()
@@ -82,7 +127,7 @@ class ImageCache:
             )
             conn.commit()
 
-    def get_cached_image(self, url: str) -> Optional[Tuple[bytes, str, str]]:
+    def get_cached_image(self, url: str) -> tuple[bytes, str, str] | None:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "SELECT image_data, etag, last_modified FROM images WHERE url = ?",
@@ -97,8 +142,8 @@ class ImageCache:
         self,
         network_image: NetworkImage,
         image_data: bytes,
-        etag: Optional[str],
-        last_modified: Optional[str],
+        etag: str | None,
+        last_modified: str | None,
     ) -> None:
         image_hash = hashlib.md5(image_data).hexdigest()
 
