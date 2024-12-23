@@ -2,6 +2,7 @@ from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Input
+from textual.validation import Length
 
 import shelve
 
@@ -37,6 +38,10 @@ class Youtube(App):
     .gap {
         width: 2;
     }
+
+    ImageView {
+        width: auto;
+    }
     """
 
     def __init__(self) -> None:
@@ -46,7 +51,11 @@ class Youtube(App):
         self.yt_controller = YoutubeController(self.yt_model)
 
     def compose(self) -> ComposeResult:
-        yield Input(select_on_focus=False)
+        yield Input(
+            select_on_focus=False,
+            validate_on=["submitted"],
+            validators=[Length(minimum=1)],
+        )
         yield YoutubeVideosView()
 
     def action_focus_input(self) -> None:
@@ -55,6 +64,10 @@ class Youtube(App):
     @on(Input.Submitted)
     @work
     async def search(self, ev: Input.Submitted) -> None:
+        if ev.validation_result and not ev.validation_result.is_valid:
+            self.notify("Search cannot be empty", severity="warning")
+            return
+
         video_list = self.query_one(YoutubeVideosView)
         input = self.query_one(Input)
         try:

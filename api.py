@@ -7,6 +7,9 @@ from image import NetworkImage
 class YoutubeAPI:
     @staticmethod
     def search(query: str, max_results: int = 5) -> list[YoutubeVideo]:
+        if not query:
+            return []
+
         search_query = f"ytsearch{max_results}:{query}"
         options = {
             "quiet": True,
