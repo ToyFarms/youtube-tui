@@ -42,11 +42,12 @@ class YoutubeAPI:
 
         if isinstance(info, dict):
             entries = info.get("entries", [])
+            print(entries)
             for entry in entries:
                 status = {
                     "is_live": YoutubeVideo.Status.IS_LIVE,
                     "was_live": YoutubeVideo.Status.WAS_LIVE,
-                }.get(entry.get("live"), YoutubeVideo.Status.NOT_LIVE)
+                }.get(entry.get("live_status"), YoutubeVideo.Status.NOT_LIVE)
 
                 nb_views = 0
                 if status == YoutubeVideo.Status.IS_LIVE:

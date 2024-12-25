@@ -90,6 +90,7 @@ class YoutubeVideoView(ListItem):
         super().__init__()
 
         self.video = video
+        self.tooltip = f"{video}"
 
     async def on_mount(self) -> None:
         self.query_one(ImageView).update_image(self.video.thumbnails[0])
@@ -112,10 +113,21 @@ class YoutubeVideoView(ListItem):
                         yield Label(" [green]✓[/]")
 
                 yield Label()
-                yield Label(
-                    f"{utils.format_number(self.video.view_count)} views @ {utils.format_time(self.video.duration)}",
-                    classes="yt-subtext",
-                )
+                if self.video.live == YoutubeVideo.Status.IS_LIVE:
+                    yield Label(
+                        f"{utils.format_number(self.video.view_count)} views @ 🔴 LIVE",
+                        classes="yt-subtext",
+                    )
+                elif self.video.live == YoutubeVideo.Status.WAS_LIVE:
+                    yield Label(
+                        f"{utils.format_number(self.video.view_count)} views @ ⬤  WAS LIVE",
+                        classes="yt-subtext",
+                    )
+                else:
+                    yield Label(
+                        f"{utils.format_number(self.video.view_count)} views @ {utils.format_time(self.video.duration)}",
+                        classes="yt-subtext",
+                    )
 
 
 class YoutubeProgress(Widget):
