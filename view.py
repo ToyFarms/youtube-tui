@@ -120,7 +120,7 @@ class YoutubeVideoView(ListItem):
                     )
                 elif self.video.live == YoutubeVideo.Status.WAS_LIVE:
                     yield Label(
-                        f"{utils.format_number(self.video.view_count)} views @ ⬤  WAS LIVE",
+                        f"{utils.format_number(self.video.view_count)} views @ {utils.format_time(self.video.duration)} ⬤  WAS LIVE",
                         classes="yt-subtext",
                     )
                 else:
@@ -168,7 +168,11 @@ class YoutubeProgress(Widget):
 
     def watch_max(self, max: float) -> None:
         self.meter.max = max
-        self.query_one(".meter-max").update(utils.format_time(max))
+        indicator = self.query_one(".meter-max")
+        if self.max != float("inf"):
+            indicator.update(utils.format_time(max))
+        else:
+            indicator.update("--:--")
 
 
 class YoutubePlayer(Widget):
@@ -227,6 +231,14 @@ class YoutubePlayer(Widget):
         if video is None:
             return
 
+        if video.live == YoutubeVideo.Status.WAS_LIVE:
+            self.notify(
+                f"Failed to play {video.title!r}",
+                title="Cannot play live that has ended",
+                severity="warning",
+            )
+            return
+
         self.player.pause()
         self.query_one("#title").update(f"[#aaaaaa]Playing:[/] {video.title}")
         self.player.update(YoutubeAPI.get_media_url(video.id))
@@ -239,5 +251,8 @@ class YoutubePlayer(Widget):
             progress.value = time
 
         self.player.time_callback = update_progress
-        progress.max = self.player.container.duration / 1000000
+        if self.player.container.duration:
+            progress.max = self.player.container.duration / 1000000
+        else:
+            progress.max = float("inf")
         self.player.play()

@@ -35,6 +35,9 @@ class MeterRenderable:
     ) -> RenderableType:
         width = options.max_width or console.width
 
+        if self.max == float("inf"):
+            yield Segment(" " * width, style=Style(color=self.barcolor, reverse=True))
+
         fill = 0 if self.max == 0 else (self.value / self.max) * width
         fraction = fill - int(fill)
 

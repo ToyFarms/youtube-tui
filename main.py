@@ -112,7 +112,7 @@ class Youtube(App):
         video_list.focus()
 
     @on(YoutubeVideosView.RequestPlay)
-    async def play(self, ev: YoutubeVideosView.RequestPlay) -> None:
+    def play(self, ev: YoutubeVideosView.RequestPlay) -> None:
         self.query_one(YoutubePlayer).video = ev.video
 
 
