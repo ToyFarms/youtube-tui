@@ -176,12 +176,6 @@ class YoutubeProgress(Widget):
 
 
 class YoutubePlayer(Widget):
-    BINDINGS = [
-        Binding("right", "seek(5)", "Seek +5 seconds"),
-        Binding("left", "seek(-5)", "Seek -5 seconds"),
-        Binding("space", "toggle_playback", "Toggle play/pause"),
-    ]
-
     DEFAULT_CSS = """
     #buffered {
         dock: right;
@@ -210,21 +204,21 @@ class YoutubePlayer(Widget):
     @on(Button.Pressed)
     def handle_press(self, ev: Button.Pressed) -> None:
         if ev.button.id == "left":
-            self.action_seek(-5)
+            self.seek(-5)
         elif ev.button.id == "right":
-            self.action_seek(100)
+            self.seek(100)
         elif ev.button.id == "playback":
-            self.action_toggle_playback()
+            self.toggle_playback()
 
-    def action_seek(self, s: int) -> None:
+    def seek(self, s: int) -> None:
         self.player.seek(s)
 
-    def action_toggle_playback(self) -> None:
+    def toggle_playback(self) -> None:
         paused = self.player.toggle_playback()
         if paused:
-            self.query_one("#playback").label = "⏵"
-        else:
             self.query_one("#playback").label = "⏸"
+        else:
+            self.query_one("#playback").label = "⏵"
 
     @work(thread=True, exclusive=True)
     def watch_video(self, video: YoutubeVideo | None) -> None:

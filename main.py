@@ -16,6 +16,9 @@ DEBUG_DATA = False
 class Youtube(App):
     BINDINGS = [
         Binding("/", "focus_input", "Focus input"),
+        Binding("right", "seek(5)", "Seek +5 seconds"),
+        Binding("left", "seek(-5)", "Seek -5 seconds"),
+        Binding("space", "toggle_playback", "Toggle play/pause"),
     ]
 
     CSS = """
@@ -114,6 +117,12 @@ class Youtube(App):
     @on(YoutubeVideosView.RequestPlay)
     def play(self, ev: YoutubeVideosView.RequestPlay) -> None:
         self.query_one(YoutubePlayer).video = ev.video
+
+    def action_seek(self, s: int) -> None:
+        self.query_one(YoutubePlayer).seek(s)
+
+    def action_toggle_playback(self) -> None:
+        self.query_one(YoutubePlayer).toggle_playback()
 
 
 if __name__ == "__main__":
