@@ -90,7 +90,6 @@ class YoutubeVideoView(ListItem):
         super().__init__()
 
         self.video = video
-        self.tooltip = f"{video}"
 
     async def on_mount(self) -> None:
         self.query_one(ImageView).update_image(self.video.thumbnails[0])
@@ -225,14 +224,6 @@ class YoutubePlayer(Widget):
         if video is None:
             return
 
-        if video.live == YoutubeVideo.Status.WAS_LIVE:
-            self.notify(
-                f"Failed to play {video.title!r}",
-                title="Cannot play live that has ended",
-                severity="warning",
-            )
-            return
-
         self.player.pause()
         self.query_one("#title").update(f"[#aaaaaa]Playing:[/] {video.title}")
         self.player.update(YoutubeAPI.get_media_url(video.id))
@@ -241,12 +232,27 @@ class YoutubePlayer(Widget):
         buffer_indicator = self.query_one("#buffered")
 
         def update_progress(time: float) -> None:
-            buffer_indicator.update(f"{self.player.buffer.size:,} bytes buffered")
+            if not time:
+                return
             progress.value = time
 
-        self.player.time_callback = update_progress
-        if self.player.container.duration:
-            progress.max = self.player.container.duration / 1000000
-        else:
-            progress.max = float("inf")
+        def update_duration(duration: float) -> None:
+
+            progress.max = duration or float("inf")
+
+        def update_cache(cache: float) -> None:
+            buffer_indicator.update(
+                f"{cache['fw-bytes']:,} bytes buffered ({cache['cache-duration']:.2f}s)"
+            )
+
+        self.player.register_callback(
+            "time-pos", fn=lambda name, value: update_progress(value)
+        )
+        self.player.register_callback(
+            "duration", fn=lambda name, value: update_duration(value)
+        )
+        self.player.register_callback(
+            "demuxer-cache-state", fn=lambda name, value: update_cache(value)
+        )
+
         self.player.play()
