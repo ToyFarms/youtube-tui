@@ -21,9 +21,3 @@ class YoutubeVideo:
     live: Status
     duration: int
     thumbnails: list[NetworkImage]
-
-
-class YoutubeModel:
-    def __init__(self) -> None:
-        self.search_results: list[YoutubeVideo] = []
-

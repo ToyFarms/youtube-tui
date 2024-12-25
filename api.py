@@ -1,10 +1,29 @@
 from yt_dlp import YoutubeDL
 
+import asyncio
+
 from model import YoutubeVideo
 from image import NetworkImage
 
 
 class YoutubeAPI:
+    @staticmethod
+    def get_media_url(url_or_id: str) -> None:
+        ydl_opts = {
+            "format": "bestaudio",
+            "quiet": True,
+            "noplaylist": True,
+        }
+
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url_or_id, download=False)
+            return info_dict["url"]
+
+    @staticmethod
+    async def search_async(query: str, max_results: int = 5) -> list[YoutubeVideo]:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, YoutubeAPI.search, query, max_results)
+
     @staticmethod
     def search(query: str, max_results: int = 5) -> list[YoutubeVideo]:
         if not query:

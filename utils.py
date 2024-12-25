@@ -1,4 +1,10 @@
-def format_time(seconds):
+from contextlib import contextmanager
+
+import os
+import sys
+
+
+def format_time(seconds: float) -> str:
     """
     Format seconds into DD:HH:MM:SS, HH:MM:SS, MM:SS, or M:SS depending on the duration.
 
@@ -40,7 +46,7 @@ def format_time(seconds):
     return ":".join(parts)
 
 
-def format_number(number):
+def format_number(number: float) -> None:
     """
     Format number with K/M/B suffixes and appropriate decimal places.
 
@@ -75,3 +81,19 @@ def format_number(number):
     # Billion+
     formatted = number / 1000000000
     return f"{formatted:.1f}B"
+
+
+# https://github.com/spatialaudio/python-sounddevice/issues/11
+@contextmanager
+def suppress_portaudio_error() -> None:
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    old_stderr = os.dup(2)
+    sys.stderr.flush()
+    os.dup2(devnull, 2)
+    os.close(devnull)
+
+    try:
+        yield
+    finally:
+        os.dup2(old_stderr, 2)
+        os.close(old_stderr)

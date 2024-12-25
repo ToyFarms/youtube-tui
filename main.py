@@ -6,9 +6,8 @@ from textual.validation import Length
 
 import shelve
 
-from model import YoutubeModel
-from view import YoutubeVideosView
-from controller import YoutubeController
+from view import YoutubeVideosView, YoutubePlayer
+from api import YoutubeAPI
 
 
 DEBUG_DATA = False
@@ -42,13 +41,37 @@ class Youtube(App):
     ImageView {
         width: auto;
     }
+
+    YoutubePlayer {
+        dock: bottom;
+        height: 3;
+    }
+
+    .center {
+        align: center middle;
+    }
+
+    YoutubePlayer Button {
+        height: 1;
+        max-width: 6;
+        margin-left: 1;
+        margin-right: 1;
+        border-top: none;
+        border-bottom: none;
+    }
+
+    YoutubePlayer Button#playback {
+        max-width: 5;
+    }
+
+    YoutubeProgress Meter {
+        color: red;
+        background: $foreground;
+    }
     """
 
     def __init__(self) -> None:
         super().__init__()
-
-        self.yt_model = YoutubeModel()
-        self.yt_controller = YoutubeController(self.yt_model)
 
     def compose(self) -> ComposeResult:
         yield Input(
@@ -57,6 +80,7 @@ class Youtube(App):
             validators=[Length(minimum=1)],
         )
         yield YoutubeVideosView()
+        yield YoutubePlayer()
 
     def action_focus_input(self) -> None:
         self.query_one(Input).focus()
@@ -64,26 +88,32 @@ class Youtube(App):
     @on(Input.Submitted)
     @work
     async def search(self, ev: Input.Submitted) -> None:
-        if ev.validation_result and not ev.validation_result.is_valid:
+        if (
+            ev.validation_result and not ev.validation_result.is_valid
+        ) and not DEBUG_DATA:
             self.notify("Search cannot be empty", severity="warning")
             return
 
         video_list = self.query_one(YoutubeVideosView)
         input = self.query_one(Input)
+
         try:
             video_list.loading = True
             input.disabled = True
             if DEBUG_DATA:
                 with shelve.open("dummy_data.db", "r") as f:
-                    self.yt_model.search_results = f["videos"]
+                    video_list.videos = f["videos"]
             else:
-                await self.yt_controller.search_async(ev.value)
+                video_list.videos = await YoutubeAPI.search_async(ev.value)
         finally:
             video_list.loading = False
             input.disabled = False
 
         video_list.focus()
-        await video_list.update_videos(self.yt_model.search_results)
+
+    @on(YoutubeVideosView.RequestPlay)
+    async def play(self, ev: YoutubeVideosView.RequestPlay) -> None:
+        self.query_one(YoutubePlayer).video = ev.video
 
 
 if __name__ == "__main__":
