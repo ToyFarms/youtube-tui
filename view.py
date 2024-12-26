@@ -217,9 +217,9 @@ class YoutubePlayer(Widget):
         yield YoutubeProgress()
         with HorizontalGroup(classes="center"):
             yield Button("⏮", id="prev")
-            yield Button("+5", id="left")
+            yield Button("-5", id="left")
             yield Button("⏸", id="playback")
-            yield Button("-5", id="right")
+            yield Button("+5", id="right")
             yield Button("⏭", id="next")
 
     @on(Button.Pressed)
@@ -227,7 +227,7 @@ class YoutubePlayer(Widget):
         if ev.button.id == "left":
             self.seek(-5)
         elif ev.button.id == "right":
-            self.seek(100)
+            self.seek(5)
         elif ev.button.id == "playback":
             self.toggle_playback()
 
