@@ -4,6 +4,7 @@
 from typing import final, override
 from textual import work, on
 from textual.message import Message
+from textual.css.query import NoMatches
 from textual.reactive import Reactive
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -177,8 +178,9 @@ class YoutubeProgress(Widget):
 
     def watch_value(self, value: float) -> None:
         self.meter.value = value
-        meter = self.query_one(".meter-val", Label)
-        if not meter:
+        try:
+            meter = self.query_one(".meter-val", Label)
+        except NoMatches:
             return
 
         meter.update(utils.format_time(value))
