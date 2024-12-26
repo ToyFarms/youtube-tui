@@ -7,7 +7,7 @@ import asyncio
 
 from model import YoutubeVideo
 from image import NetworkImage
-import utils
+from utils import expect
 
 
 class YoutubeAPI:
@@ -20,10 +20,10 @@ class YoutubeAPI:
         }
 
         with YoutubeDL(ydl_opts) as ydl:
-            info_dict = utils.expect(
+            info_dict = expect(
                 ydl.extract_info(url_or_id, download=False), dict[str, object]
             )
-            return utils.expect(info_dict.get("url", ""), str)
+            return expect(info_dict.get("url", ""), str)
 
     @staticmethod
     async def search_async(query: str, max_results: int = 5) -> list[YoutubeVideo]:
@@ -32,7 +32,6 @@ class YoutubeAPI:
 
     @staticmethod
     def search(query: str, max_results: int = 5) -> list[YoutubeVideo]:
-        x = utils.expect
         if not query:
             return []
 
@@ -43,11 +42,13 @@ class YoutubeAPI:
         }
 
         with YoutubeDL(options) as ydl:
-            info = x(ydl.extract_info(search_query, download=False), dict[str, object])
+            info = expect(
+                ydl.extract_info(search_query, download=False), dict[str, object]
+            )
 
         videos: list[YoutubeVideo] = []
 
-        entries = x(info.get("entries", []), list[dict[str, object]])
+        entries = expect(info.get("entries", []), list[dict[str, object]])
         for entry in entries:
             status = YoutubeVideo.Status.NOT_LIVE
             status_str = entry.get("live_status")
@@ -59,36 +60,38 @@ class YoutubeAPI:
 
             nb_views = 0
             if status == YoutubeVideo.Status.IS_LIVE:
-                nb_views = x(entry.get("concurrent_view_count", 0), int)
+                nb_views = expect(entry.get("concurrent_view_count", 0), int)
             else:
-                nb_views = x(entry.get("view_count", 0), int)
+                nb_views = expect(entry.get("view_count", 0), int)
 
             thumbnails: list[NetworkImage] = []
-            for thumbnail in x(entry.get("thumbnails", []), list[dict[str, int | str]]):
-                if not (url := x(thumbnail.get("url"), str)):
+            for thumbnail in expect(
+                entry.get("thumbnails", []), list[dict[str, int | str]]
+            ):
+                if not (url := expect(thumbnail.get("url"), str)):
                     continue
 
                 thumbnails.append(
                     NetworkImage(
                         url=url,
-                        width=x(thumbnail.get("width", 0), int),
-                        height=x(thumbnail.get("height", 0), int),
+                        width=expect(thumbnail.get("width", 0), int),
+                        height=expect(thumbnail.get("height", 0), int),
                     )
                 )
 
             videos.append(
                 YoutubeVideo(
-                    title=x(entry.get("title", ""), str),
-                    id=x(entry.get("id", ""), str),
-                    channel=x(entry.get("channel", ""), str),
-                    channel_id=x(entry.get("channel_id", ""), str),
-                    uploader_id=x(entry.get("uploader_id", ""), str),
-                    channel_is_verified=x(
+                    title=expect(entry.get("title", ""), str),
+                    id=expect(entry.get("id", ""), str),
+                    channel=expect(entry.get("channel", ""), str),
+                    channel_id=expect(entry.get("channel_id", ""), str),
+                    uploader_id=expect(entry.get("uploader_id", ""), str),
+                    channel_is_verified=expect(
                         entry.get("channel_is_verified", False), bool
                     ),
-                    view_count=x(nb_views, int),
+                    view_count=expect(nb_views, int),
                     live=status,
-                    duration=x(entry.get("duration") or 0, int),
+                    duration=expect(entry.get("duration") or 0, int),
                     thumbnails=thumbnails,
                 )
             )

@@ -31,8 +31,7 @@ from audio import AudioPlayer
 from meter import Meter
 from path_input import PathInput
 from persistent import shared_db
-
-import utils
+from utils import expect, format_number, format_time
 
 
 @final
@@ -129,17 +128,17 @@ class YoutubeVideoView(ListItem):
                 yield Label()
                 if self.video.live == YoutubeVideo.Status.IS_LIVE:
                     yield Label(
-                        f"{utils.format_number(self.video.view_count)} views @ 🔴 LIVE",
+                        f"{format_number(self.video.view_count)} views @ 🔴 LIVE",
                         classes="yt-subtext",
                     )
                 elif self.video.live == YoutubeVideo.Status.WAS_LIVE:
                     yield Label(
-                        f"{utils.format_number(self.video.view_count)} views @ {utils.format_time(self.video.duration)} ⬤  WAS LIVE",
+                        f"{format_number(self.video.view_count)} views @ {format_time(self.video.duration)} ⬤  WAS LIVE",
                         classes="yt-subtext",
                     )
                 else:
                     yield Label(
-                        f"{utils.format_number(self.video.view_count)} views @ {utils.format_time(self.video.duration)}",
+                        f"{format_number(self.video.view_count)} views @ {format_time(self.video.duration)}",
                         classes="yt-subtext",
                     )
 
@@ -185,13 +184,13 @@ class YoutubeProgress(Widget):
         except NoMatches:
             return
 
-        meter.update(utils.format_time(value))
+        meter.update(format_time(value))
 
     def watch_max(self, max: float) -> None:
         self.meter.max = max
         indicator = self.query_one(".meter-max", Label)
         if self.max != float("inf"):
-            indicator.update(utils.format_time(max))
+            indicator.update(format_time(max))
         else:
             indicator.update("--:--")
 
@@ -270,10 +269,10 @@ class YoutubePlayer(Widget):
             )
 
         self.player.register_callback(
-            "time-pos", fn=lambda value: update_progress(utils.expect(value, float))
+            "time-pos", fn=lambda value: update_progress(expect(value, float))
         )
         self.player.register_callback(
-            "duration", fn=lambda value: update_duration(utils.expect(value, float))
+            "duration", fn=lambda value: update_duration(expect(value, float))
         )
         self.player.register_callback(
             "demuxer-cache-state",
@@ -303,7 +302,7 @@ class SettingPopup(ModalScreen[None]):
                 validators=[Number(0)],
                 restrict=r"\d*",
                 placeholder="Youtube max search",
-                value=f"{utils.expect(shared_db.get("max_search", 0), int)}",
+                value=f"{shared_db.get("max_search", 0)}",
                 select_on_focus=False,
             )
 
@@ -312,7 +311,7 @@ class SettingPopup(ModalScreen[None]):
                 id="ytdlp-outdir",
                 classes="yt-setting",
                 file_okay=False,
-                value=utils.expect(shared_db.get("outdir", ""), str),
+                value=shared_db.get("outdir", ""),
             )
 
     @on(PathInput.Submitted, "#ytdlp-outdir")

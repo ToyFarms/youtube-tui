@@ -4,6 +4,8 @@ from typing import Hashable, Self
 import shelve
 import atexit
 
+import utils
+
 
 class PersistentStorage:
     _instance: Self | None = None
@@ -22,15 +24,15 @@ class PersistentStorage:
         if self._db is None:
             return
 
-        print(key, value)
         self._db[str(key)] = value
         self._db.sync()
 
-    def get[T](self, key: Hashable, default: T | None = None) -> object | T:
+    def get[T](self, key: Hashable, default: T) -> T:
         if self._db is None:
             return default
 
-        return self._db.get(str(key), default)
+        v = utils.expect(self._db.get(str(key), default), type(default))
+        return v
 
     def delete(self, key: Hashable) -> None:
         if self._db is None:

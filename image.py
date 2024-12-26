@@ -1,7 +1,5 @@
 # pyright: reportUnknownArgumentType=false, reportUnknownMemberType=false
 
-from typing import final, TypedDict
-
 import sqlite3
 import requests
 import io
@@ -11,8 +9,9 @@ import aiohttp
 from PIL import Image
 from datetime import datetime
 from dataclasses import dataclass
+from typing import final, TypedDict
 
-import utils
+from utils import expect
 
 
 @dataclass
@@ -144,12 +143,12 @@ class ImageCache:
                 "SELECT image_data, etag, last_modified FROM images WHERE url = ?",
                 (url,),
             )
-            result = utils.expect(cursor.fetchone(), list[object])
+            result = expect(cursor.fetchone(), list[object])
             if result:
                 return (
-                    utils.expect(result[0], bytes),
-                    utils.expect(result[1], str),
-                    utils.expect(result[2], str),
+                    expect(result[0], bytes),
+                    expect(result[1], str),
+                    expect(result[2], str),
                 )
         return None
 
@@ -205,10 +204,10 @@ class ImageCache:
                 FROM images
             """
             )
-            stats = utils.expect(cursor.fetchone(), list[object])
+            stats = expect(cursor.fetchone(), list[object])
             return {
-                "total_images": utils.expect(stats[0], int),
-                "total_size_bytes": utils.expect(stats[1], int),
-                "oldest_image": utils.expect(stats[2], str),
-                "newest_image": utils.expect(stats[3], str),
+                "total_images": expect(stats[0], int),
+                "total_size_bytes": expect(stats[1], int),
+                "oldest_image": expect(stats[2], str),
+                "newest_image": expect(stats[3], str),
             }

@@ -1,8 +1,9 @@
 # pyright: reportUnknownMemberType=false, reportUnknownLambdaType=false, reportUnknownArgumentType=false
 from typing import Callable, final
 
+from utils import expect
+
 import mpv
-import utils
 
 
 @final
@@ -48,7 +49,7 @@ class AudioPlayer:
         self.filepath = filepath
 
     def get_duration(self) -> float:
-        return utils.expect(self.player.duration, float)
+        return expect(self.player.duration, float)
 
     def get_current_time(self) -> float:
-        return utils.expect(self.player.time_pos, float)
+        return expect(self.player.time_pos, float)

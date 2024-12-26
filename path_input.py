@@ -1,9 +1,5 @@
 # https://github.com/tconbeer/textual-textarea/blob/main/src/textual_textarea/path_input.py (modified)
 
-from __future__ import annotations
-import os
-import unicodedata
-
 from rich.highlighter import Highlighter
 from textual.binding import Binding
 from textual.suggester import Suggester
@@ -13,6 +9,8 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from typing import final, override
 
+import os
+import unicodedata
 import stat
 
 

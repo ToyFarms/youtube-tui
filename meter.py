@@ -1,10 +1,11 @@
 from textual.reactive import Reactive
 from textual.widget import Widget
-from typing import Literal, final
+from typing import final, override
 from rich.segment import Segment, Segments
 from rich.console import RenderResult, RenderableType, Console, ConsoleOptions
 from rich.style import Style
 from rich.color import Color
+
 
 @final
 class MeterRenderable:
@@ -54,7 +55,7 @@ class MeterRenderable:
         )
         self.segments.append(
             Segment(
-                self.block_from_value(fraction, "h"),
+                self.block_from_value(fraction),
                 style=Style(color=self.barcolor, bgcolor=self.bgcolor),
             )
         )
@@ -67,14 +68,11 @@ class MeterRenderable:
 
         yield Segments(self.segments)
 
-    def block_from_value(self, v: float, type: Literal["h"]) -> str:
+    def block_from_value(self, v: float) -> str:
         v = min(max(v, 0), 1)
-        if type == "h":
-            return self.HBLOCKS[
-                (self.BLOCK_RESOLUTION - int(v * self.BLOCK_RESOLUTION)) - 1
-            ]
-        else:
-            return ""
+        return self.HBLOCKS[
+            (self.BLOCK_RESOLUTION - int(v * self.BLOCK_RESOLUTION)) - 1
+        ]
 
     def update_value(
         self,
@@ -85,6 +83,7 @@ class MeterRenderable:
         self.max = max or self.max
 
 
+@final
 class Meter(Widget):
     DEFAULT_CSS = """
     Meter {
@@ -108,6 +107,7 @@ class Meter(Widget):
     def watch_max(self, max: float) -> None:
         self.renderable.update_value(max=max)
 
+    @override
     def render(self) -> RenderableType:
         self.renderable.barcolor = Color.from_rgb(*self.styles.color.rgb)
         self.renderable.bgcolor = Color.from_rgb(*self.styles.background.rgb)

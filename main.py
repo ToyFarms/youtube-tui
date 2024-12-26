@@ -11,8 +11,6 @@ from view import YoutubeVideosView, YoutubePlayer, SettingPopup
 from api import YoutubeAPI
 from persistent import shared_db
 
-import utils
-
 
 DEBUG_DATA = False
 
@@ -136,7 +134,7 @@ class Youtube(App[None]):
             else:
                 video_list.videos = await YoutubeAPI.search_async(
                     ev.value,
-                    max_results=utils.expect(shared_db.get("max_search", 5), int),
+                    max_results=shared_db.get("max_search", 5),
                 )
         finally:
             video_list.loading = False
