@@ -27,6 +27,7 @@ from textual_image.renderable import Image as AutoRenderable
 from textual_image.widget._base import Image
 from PIL import Image as PILImage
 
+from api import YoutubeAPI
 from image import NetworkImage
 from model import YoutubeVideo
 from audio import AudioPlayer
@@ -44,6 +45,7 @@ class YoutubeVideosView(ListView):
         Binding("j", "cursor_down", "Cursor down"),
         Binding("g", "cursor_top", "Cursor to top"),
         Binding("G", "cursor_bot", "Cursor to bottom"),
+        Binding("d", "download", "Download selected video"),
     ]
     videos: Reactive[list[YoutubeVideo]] = Reactive([])
 
@@ -59,6 +61,13 @@ class YoutubeVideosView(ListView):
 
     def action_cursor_bot(self) -> None:
         self.index = len(self) - 1
+
+    def action_download(self) -> None:
+        selected = expect(self.highlighted_child, YoutubeVideoView)
+        if not selected:
+            self.notify("Nothing is selected", severity="warning")
+
+        _ = selected.action_download()
 
     @work
     async def watch_videos(self, videos: list[YoutubeVideo]) -> None:
@@ -101,6 +110,12 @@ class ImageView(Image, Renderable=AutoRenderable):
 class YoutubeVideoView(ListItem):
     item_size = 6
 
+    DOWNLOAD_IDLE = 0
+    DOWNLOAD_PROCESS = 1
+    DOWNLOAD_COMPLETED = 2
+
+    download_status = Reactive(DOWNLOAD_IDLE)
+
     def __init__(self, video: YoutubeVideo) -> None:
         super().__init__()
 
@@ -108,6 +123,41 @@ class YoutubeVideoView(ListItem):
 
     async def on_mount(self) -> None:
         _ = self.query_one(ImageView).update_image(self.video.thumbnails[0])
+
+    @work
+    async def action_download(self) -> None:
+        if self.download_status == self.DOWNLOAD_PROCESS:
+            self.notify(
+                f"Video {self.video.title!r} is still downloading", severity="warning"
+            )
+            return
+
+        # TODO: create a download queue, with the ui
+        # TODO: allow to download multiple time, if the output path changed, or the target file doesnt exists
+        if self.download_status == self.DOWNLOAD_COMPLETED:
+            self.notify(
+                f"Video {self.video.title!r} is already downloaded", severity="warning"
+            )
+            return
+
+        self.download_status = self.DOWNLOAD_PROCESS
+
+        await YoutubeAPI.download_async(
+            self.video.id,
+            shared_db.get("format", "bestaudio[ext=m4a]"),
+            shared_db.get("outdir", "."),
+        )
+
+        self.download_status = self.DOWNLOAD_COMPLETED
+
+    def watch_download_status(self, status: int) -> None:
+        indicator = self.query_one(".download-status", Label)
+        if status == self.DOWNLOAD_IDLE:
+            indicator.styles.background = "#AAAAAA"
+        elif status == self.DOWNLOAD_PROCESS:
+            indicator.styles.background = "#FFFF00"
+        elif status == self.DOWNLOAD_COMPLETED:
+            indicator.styles.background = "#00AA00"
 
     @override
     def compose(self) -> ComposeResult:
@@ -143,6 +193,7 @@ class YoutubeVideoView(ListItem):
                         f"{format_number(self.video.view_count)} views @ {format_time(self.video.duration)}",
                         classes="yt-subtext",
                     )
+            yield Label(classes="download-status")
 
 
 @final
@@ -260,12 +311,16 @@ class YoutubePlayer(Widget):
         def update_progress(time: float) -> None:
             if not time:
                 return
+
             progress.value = time
 
         def update_duration(duration: float) -> None:
             progress.max = duration or float("inf")
 
         def update_cache(cache: dict[str, float]) -> None:
+            if not cache:
+                return
+
             buffer_indicator.update(
                 f"{cache['fw-bytes']:,} bytes buffered ({cache['cache-duration']:.2f}s)"
             )

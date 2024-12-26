@@ -61,7 +61,7 @@ class Youtube(App[None]):
     }
 
     .yt-subtext {
-        color: #aaaaaa;
+        color: #AAAAAA;
     }
 
     .gap {
@@ -111,6 +111,12 @@ class Youtube(App[None]):
         margin-left: 1;
         padding-left: 1;
         padding-right: 1;
+    }
+
+    .download-status {
+        width: 2;
+        height: 100%;
+        background: #aaaaaa;
     }
     """
 
@@ -165,8 +171,7 @@ class Youtube(App[None]):
         finally:
             video_list.loading = False
             input.disabled = False
-
-        _ = video_list.focus()
+            _ = input.focus()
 
     @on(YoutubeVideosView.RequestPlay)
     def play(self, ev: YoutubeVideosView.RequestPlay) -> None:

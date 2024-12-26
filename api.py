@@ -13,6 +13,17 @@ from utils import expect
 
 class YoutubeAPI:
     @staticmethod
+    async def download_async(
+        url: str | list[str],
+        format: str = "bestaudio[ext=m4a]",
+        outdir: str | Path = ".",
+    ) -> None:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, YoutubeAPI.download, url, format, outdir
+        )
+
+    @staticmethod
     def download(
         url: str | list[str],
         format: str = "bestaudio[ext=m4a]",
