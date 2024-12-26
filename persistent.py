@@ -26,7 +26,7 @@ class PersistentStorage:
         self._db[str(key)] = value
         self._db.sync()
 
-    def get[T](self, key: Hashable, default: T = None) -> object | T:
+    def get[T](self, key: Hashable, default: T | None = None) -> object | T:
         if self._db is None:
             return default
 

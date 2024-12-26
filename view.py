@@ -9,7 +9,7 @@ from textual.reactive import Reactive
 from textual.validation import Number
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import HorizontalGroup, VerticalGroup
+from textual.containers import HorizontalGroup, VerticalGroup, VerticalScroll
 from textual.css.scalar import Scalar
 from textual.widget import Widget
 from textual.widgets import (
@@ -29,6 +29,7 @@ from image import NetworkImage
 from model import YoutubeVideo
 from audio import AudioPlayer
 from meter import Meter
+from path_input import PathInput
 from persistent import shared_db
 
 import utils
@@ -295,22 +296,34 @@ class SettingPopup(ModalScreen[None]):
     }
     """
 
-    BINDINGS = [Binding("esc", "dismiss()")]
+    BINDINGS = [Binding("escape", "dismiss()")]
 
     @override
     def compose(self) -> ComposeResult:
-        yield Label("Youtube max search")
-        yield Input(
-            id="yt-searchmax",
-            classes="yt-setting",
-            validators=[Number(0)],
-            restrict=r"\d*",
-            placeholder="Youtube max search",
-            value=f"{utils.expect(shared_db.get("max_search", 0), int)}",
-            select_on_focus=False,
-        )
+        with VerticalScroll(classes="yt-setting-container"):
+            yield Label("YouTube max search")
+            yield Input(
+                id="yt-maxsearch",
+                classes="yt-setting",
+                validators=[Number(0)],
+                restrict=r"\d*",
+                placeholder="Youtube max search",
+                value=f"{utils.expect(shared_db.get("max_search", 0), int)}",
+                select_on_focus=False,
+            )
 
-    @on(Input.Submitted, "#yt-searchmax")
+            yield Label("yt-dlp output dir")
+            yield PathInput(id="yt-dlp-outdir", classes="yt-setting")
+
+    @on(PathInput.Changed, "#ytdlp-outdir")
+    def handle_change(self, ev: Input.Changed) -> None:
+        pass
+
+    def handle_input_submit(self, ev: Input.Submitted) -> None:
+        _ = ev
+        _ = self.dismiss()
+
+    @on(Input.Submitted, "#yt-maxsearch")
     def handle_submit(self, ev: Input.Submitted) -> None:
         shared_db.set("max_search", ev.value)
-        _ = self.dismiss()
+        self.handle_input_submit(ev)

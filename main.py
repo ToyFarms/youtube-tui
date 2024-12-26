@@ -35,11 +35,19 @@ class Youtube(App[None]):
         border-bottom: none;
     }
 
-    .yt-setting {
-        height: 1;
-        border-top: none;
-        border-bottom: none;
-        width: 30%
+    .yt-setting-container {
+        width: 30%;
+        align: center middle;
+        height: auto;
+        margin: 1;
+    }
+
+    .yt-setting-container Label {
+        width: 100%;
+        text-align: center;
+        background: $panel;
+        margin-left: 1;
+        margin-right: 1;
     }
 
     .yt-maintext {
