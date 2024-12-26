@@ -6,6 +6,7 @@ from textual import work, on
 from textual.message import Message
 from textual.css.query import NoMatches
 from textual.reactive import Reactive
+from textual.validation import Number
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import HorizontalGroup, VerticalGroup
