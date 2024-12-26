@@ -3,6 +3,7 @@
 
 from typing import final, override
 from textual import work, on
+from textual.await_complete import AwaitComplete
 from textual.message import Message
 from textual.css.query import NoMatches
 from textual.reactive import Reactive
@@ -114,7 +115,7 @@ class YoutubeVideoView(ListItem):
             yield Label(classes="gap")
             with VerticalGroup():
                 yield Label()
-                yield Label(f"[bold]{self.video.title}[/]", classes="yt-maintext")
+                yield Label(f"{self.video.title}", classes="yt-maintext")
                 with HorizontalGroup():
                     yield Link(
                         self.video.channel,
@@ -282,6 +283,7 @@ class YoutubePlayer(Widget):
         self.player.play()
 
 
+# TODO: factor out label-input setting
 @final
 class SettingPopup(ModalScreen[None]):
     DEFAULT_CSS = """
@@ -290,11 +292,12 @@ class SettingPopup(ModalScreen[None]):
     }
     """
 
-    BINDINGS = [Binding("escape", "dismiss()")]
+    BINDINGS = [Binding("escape", "dismiss()"), Binding("q", "dismiss()")]
 
     @override
     def compose(self) -> ComposeResult:
-        with VerticalScroll(classes="yt-setting-container"):
+        with VerticalScroll(classes="yt-setting-container", can_focus=False):
+            yield Label("Setting", classes="setting-title")
             yield Label("YouTube max search")
             yield Input(
                 id="yt-maxsearch",
@@ -314,8 +317,24 @@ class SettingPopup(ModalScreen[None]):
                 value=shared_db.get("outdir", ""),
             )
 
+            yield Label("yt-dlp format")
+            yield Input(
+                id="ytdlp-format",
+                classes="yt-setting",
+                value=shared_db.get("format", ""),
+                select_on_focus=False,
+            )
+
+    def set(self, k: str, v: object) -> None:
+        self.notify(f"set {k!r} to {v!r}", title="Setting set")
+        shared_db.set(k, v)
+
+    @on(Input.Submitted, "#ytdlp-format")
+    def handle_format(self, ev: Input.Submitted) -> None:
+        self.set("format", ev.value)
+
     @on(PathInput.Submitted, "#ytdlp-outdir")
-    def handle_change(self, ev: Input.Submitted) -> None:
+    def handle_outdir(self, ev: Input.Submitted) -> None:
         if ev.validation_result and not ev.validation_result.is_valid:
             desc = ""
             if ev.validation_result.failure_descriptions:
@@ -328,13 +347,22 @@ class SettingPopup(ModalScreen[None]):
             )
             return
 
-        shared_db.set("outdir", ev.value)
-
-    def handle_input_submit(self, ev: Input.Submitted) -> None:
-        _ = ev
-        _ = self.dismiss()
+        self.set("outdir", ev.value)
 
     @on(Input.Submitted, "#yt-maxsearch")
-    def handle_submit(self, ev: Input.Submitted) -> None:
-        shared_db.set("max_search", ev.value)
-        self.handle_input_submit(ev)
+    def handle_search(self, ev: Input.Submitted) -> None:
+        self.set("max_search", ev.value)
+
+    @override
+    def dismiss(self, result: object | None = None) -> AwaitComplete:
+        def _set_if_changed(k: str, query: str) -> None:
+            v = self.query_one(query, Input).value
+            if k in shared_db and shared_db.get(k, "") == v:
+                return
+
+            self.set(k, self.query_one(query, Input).value)
+
+        _set_if_changed("max_search", "#yt-maxsearch")
+        _set_if_changed("outdir", "#ytdlp-outdir")
+        _set_if_changed("format", "#ytdlp-format")
+        return super().dismiss()

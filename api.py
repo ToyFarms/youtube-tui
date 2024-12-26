@@ -2,6 +2,7 @@
 # pyright: reportMissingTypeStubs=false, reportUnknownMemberType=false
 
 from yt_dlp import YoutubeDL
+from pathlib import Path
 
 import asyncio
 
@@ -11,6 +12,22 @@ from utils import expect
 
 
 class YoutubeAPI:
+    @staticmethod
+    def download(
+        url: str | list[str],
+        format: str = "bestaudio[ext=m4a]",
+        outdir: str | Path = ".",
+    ) -> None:
+        ydl_opts = {
+            "format": format,
+            "quiet": True,
+            "noplaylist": True,
+            "outtmpl": str(Path(outdir).expanduser().resolve() / "%(title)s.%(ext)s"),
+        }
+
+        with YoutubeDL(ydl_opts) as ydl:
+            _ = ydl.download(url)
+
     @staticmethod
     def get_media_url(url_or_id: str) -> str:
         ydl_opts = {

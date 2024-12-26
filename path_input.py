@@ -132,7 +132,7 @@ class PathValidator(Validator):
 @final
 class PathInput(Input):
     BINDINGS = [
-        Binding("tab", "complete", "Accept Completion", show=False),
+        Binding("right", "complete", "Accept Completion", show=False),
     ]
 
     def __init__(

@@ -1,7 +1,8 @@
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Input
+from textual.containers import HorizontalScroll, VerticalGroup
+from textual.widgets import Input, Label
 from textual.validation import Length
 from typing import final, override
 
@@ -27,7 +28,6 @@ class Youtube(App[None]):
 
     CSS = """
     #yt-searchbar {
-        dock: top;
         height: 1;
         border-top: none;
         border-bottom: none;
@@ -37,7 +37,7 @@ class Youtube(App[None]):
         width: 30%;
         align: center middle;
         height: auto;
-        margin: 1;
+        padding: 1;
     }
 
     .yt-setting-container Label {
@@ -46,6 +46,13 @@ class Youtube(App[None]):
         background: $panel;
         margin-left: 1;
         margin-right: 1;
+    }
+
+    .setting-title {
+        background: $background !important;
+        text-align: center;
+        text-style: bold;
+        padding-bottom: 1;
     }
 
     .yt-maintext {
@@ -90,6 +97,20 @@ class Youtube(App[None]):
         color: red;
         background: $foreground;
     }
+
+    .header {
+        dock: top;
+    }
+
+    .header-info {
+        height: 2;
+    }
+
+    .info-card {
+        margin-left: 1;
+        padding-left: 1;
+        padding-right: 1;
+    }
     """
 
     def __init__(self) -> None:
@@ -97,12 +118,16 @@ class Youtube(App[None]):
 
     @override
     def compose(self) -> ComposeResult:
-        yield Input(
-            select_on_focus=False,
-            validate_on=["submitted"],
-            validators=[Length(minimum=1)],
-            classes="yt-searchbar",
-        )
+        with VerticalGroup(classes="header"):
+            with HorizontalScroll(classes="header-info"):
+                for k, v in shared_db.items():
+                    yield Label(f"{k}: {v}", classes="info-card")
+            yield Input(
+                select_on_focus=False,
+                validate_on=["submitted"],
+                validators=[Length(minimum=1)],
+                classes="yt-searchbar",
+            )
         yield YoutubeVideosView()
         yield YoutubePlayer()
 
@@ -153,5 +178,16 @@ class Youtube(App[None]):
         self.query_one(YoutubePlayer).toggle_playback()
 
 
+def default_db() -> None:
+    def set(k: str, v: object) -> None:
+        if k not in shared_db:
+            shared_db.set(k, v)
+
+    set("outdir", "~")
+    set("max_search", 5)
+    set("format", "bestaudio[ext=m4a]")
+
+
 if __name__ == "__main__":
+    default_db()
     Youtube().run()

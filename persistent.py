@@ -1,10 +1,11 @@
 from threading import Lock
 from typing import Hashable, Self
+from collections.abc import ItemsView
 
 import shelve
 import atexit
 
-import utils
+from utils import expect
 
 
 class PersistentStorage:
@@ -31,7 +32,7 @@ class PersistentStorage:
         if self._db is None:
             return default
 
-        v = utils.expect(self._db.get(str(key), default), type(default))
+        v = expect(self._db.get(str(key), default), type(default))
         return v
 
     def delete(self, key: Hashable) -> None:
@@ -55,11 +56,11 @@ class PersistentStorage:
 
         return list(self._db.values())
 
-    def items(self) -> dict[str, object]:
+    def items(self) -> ItemsView[str, object]:
         if self._db is None:
-            return {}
+            return expect({}.items(), ItemsView[str, object])
 
-        return dict(self._db)
+        return dict(self._db).items()
 
     def clear(self) -> None:
         if self._db is None:
@@ -75,6 +76,12 @@ class PersistentStorage:
         if hasattr(self, "_db") and self._db is not None:
             self._db.close()
             self._db = None
+
+    def __contains__(self, key: Hashable) -> bool:
+        if not self._db:
+            return False
+
+        return str(key) in self._db
 
 
 shared_db = PersistentStorage()
