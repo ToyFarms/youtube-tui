@@ -7,16 +7,12 @@ import utils
 
 @final
 class AudioPlayer:
-    def __init__(
-        self,
-        filepath: str | None = None,
-        sample_rate: int = 48000,
-        buffer_ahead: float = 20,
-    ) -> None:
+    def __init__(self, filepath: str | None = None, buffer_size: str = "100K") -> None:
         def my_log(loglevel: str, component: str, message: str) -> None:
             print("[{}] {}: {}".format(loglevel, component, message))
 
         self.player = mpv.MPV(ytdl=True, log_handler=my_log, vid="no")
+        self.player.demuxer_max_bytes = buffer_size
         self.filepath = filepath
 
     def register_callback(self, event: str, fn: Callable[[object], None]) -> None:
