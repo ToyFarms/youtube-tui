@@ -5,6 +5,7 @@ from textual.containers import HorizontalScroll, VerticalGroup
 from textual.widgets import Input, Label
 from textual.validation import Length
 from typing import final, override
+from rich.markup import escape
 
 import shelve
 
@@ -121,7 +122,7 @@ class Youtube(App[None]):
         with VerticalGroup(classes="header"):
             with HorizontalScroll(classes="header-info"):
                 for k, v in shared_db.items():
-                    yield Label(f"{k}: {v}", classes="info-card")
+                    yield Label(f"{escape(k)}: {escape(str(v))}", classes="info-card")
             yield Input(
                 select_on_focus=False,
                 validate_on=["submitted"],

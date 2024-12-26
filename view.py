@@ -2,6 +2,7 @@
 # mypy: ignore-errors
 
 from typing import final, override
+from rich.markup import escape
 from textual import work, on
 from textual.await_complete import AwaitComplete
 from textual.message import Message
@@ -115,10 +116,10 @@ class YoutubeVideoView(ListItem):
             yield Label(classes="gap")
             with VerticalGroup():
                 yield Label()
-                yield Label(f"{self.video.title}", classes="yt-maintext")
+                yield Label(f"{escape(self.video.title)}", classes="yt-maintext")
                 with HorizontalGroup():
                     yield Link(
-                        self.video.channel,
+                        escape(self.video.channel),
                         url=f"https://youtube.com/{self.video.channel_id}",
                         tooltip=self.video.uploader_id,
                         classes="yt-subtext",
