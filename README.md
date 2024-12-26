@@ -7,7 +7,7 @@ A TUI application to interface with youtube; complete with thumbnail view, and a
 
 Built because youtube took too long to load.
 
-# Used in this project
+# Used in This Project
 
 - [Textual](https://github.com/Textualize/textual): a TUI library
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp): for access to YouTube api
