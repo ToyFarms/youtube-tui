@@ -1,3 +1,7 @@
+# pyright: reportUnknownMemberType=false, reportUnknownLambdaType=false, reportUnknownArgumentType=false
+# mypy: ignore-errors
+
+from typing import final, override
 from textual import work, on
 from textual.message import Message
 from textual.reactive import Reactive
@@ -6,22 +10,26 @@ from textual.binding import Binding
 from textual.containers import HorizontalGroup, VerticalGroup
 from textual.css.scalar import Scalar
 from textual.widget import Widget
-from textual.widgets import Link, ListView, ListItem, Label, ProgressBar, Button
+from textual.widgets import (
+    Link,
+    ListView,
+    ListItem,
+    Label,
+    Button,
+)
 from textual_image.renderable import Image as AutoRenderable
 from textual_image.widget._base import Image
 from PIL import Image as PILImage
-
-import numpy as np
 
 from image import NetworkImage
 from model import YoutubeVideo
 from audio import AudioPlayer
 from meter import Meter
-from api import YoutubeAPI
 
 import utils
 
 
+@final
 class YoutubeVideosView(ListView):
     BINDINGS = [
         Binding("enter", "select_cursor", "Select"),
@@ -32,6 +40,7 @@ class YoutubeVideosView(ListView):
     ]
     videos: Reactive[list[YoutubeVideo]] = Reactive([])
 
+    @final
     class RequestPlay(Message):
         def __init__(self, video: YoutubeVideo) -> None:
             super().__init__()
@@ -49,18 +58,16 @@ class YoutubeVideosView(ListView):
         await self.clear()
 
         for video in videos:
-            self.append(YoutubeVideoView(video))
+            await self.append(YoutubeVideoView(video))
 
     @on(ListView.Selected)
     def handle_play(self, ev: ListView.Selected) -> None:
         item = ev.item
         if isinstance(item, YoutubeVideoView):
-            self.post_message(YoutubeVideosView.RequestPlay(item.video))
+            _ = self.post_message(YoutubeVideosView.RequestPlay(item.video))
 
 
-type SupportedImage = PILImage.Image | NetworkImage
-
-
+@final
 class ImageView(Image, Renderable=AutoRenderable):
     def __init__(self, height: int) -> None:
         super().__init__()
@@ -69,12 +76,12 @@ class ImageView(Image, Renderable=AutoRenderable):
         self.styles.height = height
 
     @work
-    async def update_image(self, image: SupportedImage) -> None:
+    async def update_image(self, image: PILImage.Image | NetworkImage) -> None:
         self.loading = True
 
         if isinstance(image, PILImage.Image):
             self.image = image
-        elif isinstance(image, NetworkImage):
+        else:
             self.image = await image.fetch_async()
 
         self.styles.width = Scalar.parse("auto")
@@ -83,6 +90,7 @@ class ImageView(Image, Renderable=AutoRenderable):
         self.loading = False
 
 
+@final
 class YoutubeVideoView(ListItem):
     item_size = 6
 
@@ -92,8 +100,9 @@ class YoutubeVideoView(ListItem):
         self.video = video
 
     async def on_mount(self) -> None:
-        self.query_one(ImageView).update_image(self.video.thumbnails[0])
+        _ = self.query_one(ImageView).update_image(self.video.thumbnails[0])
 
+    @override
     def compose(self) -> ComposeResult:
         with HorizontalGroup():
             yield ImageView(self.item_size)
@@ -129,6 +138,7 @@ class YoutubeVideoView(ListItem):
                     )
 
 
+@final
 class YoutubeProgress(Widget):
     DEFAULT_CSS = """
     .meter-val {
@@ -155,6 +165,7 @@ class YoutubeProgress(Widget):
         super().__init__()
         self.meter = Meter()
 
+    @override
     def compose(self) -> ComposeResult:
         with HorizontalGroup(classes="center"):
             yield Label(classes="meter-val")
@@ -163,17 +174,18 @@ class YoutubeProgress(Widget):
 
     def watch_value(self, value: float) -> None:
         self.meter.value = value
-        self.query_one(".meter-val").update(utils.format_time(value))
+        self.query_one(".meter-val", Label).update(utils.format_time(value))
 
     def watch_max(self, max: float) -> None:
         self.meter.max = max
-        indicator = self.query_one(".meter-max")
+        indicator = self.query_one(".meter-max", Label)
         if self.max != float("inf"):
             indicator.update(utils.format_time(max))
         else:
             indicator.update("--:--")
 
 
+@final
 class YoutubePlayer(Widget):
     DEFAULT_CSS = """
     #buffered {
@@ -188,6 +200,7 @@ class YoutubePlayer(Widget):
 
         self.player = AudioPlayer()
 
+    @override
     def compose(self) -> ComposeResult:
         with HorizontalGroup():
             yield Label("", id="title")
@@ -215,9 +228,9 @@ class YoutubePlayer(Widget):
     def toggle_playback(self) -> None:
         paused = self.player.toggle_playback()
         if paused:
-            self.query_one("#playback").label = "⏸"
+            self.query_one("#playback", Button).label = "⏸"
         else:
-            self.query_one("#playback").label = "⏵"
+            self.query_one("#playback", Button).label = "⏵"
 
     @work(thread=True, exclusive=True)
     def watch_video(self, video: YoutubeVideo | None) -> None:
@@ -225,11 +238,17 @@ class YoutubePlayer(Widget):
             return
 
         self.player.pause()
-        self.query_one("#title").update(f"[#aaaaaa]Playing:[/] {video.title}")
-        self.player.update(YoutubeAPI.get_media_url(video.id))
+        self.query_one("#title", Label).update(f"[#aaaaaa]Playing:[/] {video.title}")
+
+        # url = YoutubeAPI.get_media_url(video.id)
+        # if not url:
+        #     self.notify(f"Could not get media url for {video.id!r}", severity="error")
+        #     return
+
+        self.player.update(f"https://youtube.com/watch?v={video.id}")
 
         progress = self.query_one(YoutubeProgress)
-        buffer_indicator = self.query_one("#buffered")
+        buffer_indicator = self.query_one("#buffered", Label)
 
         def update_progress(time: float) -> None:
             if not time:
@@ -237,22 +256,22 @@ class YoutubePlayer(Widget):
             progress.value = time
 
         def update_duration(duration: float) -> None:
-
             progress.max = duration or float("inf")
 
-        def update_cache(cache: float) -> None:
+        def update_cache(cache: dict[str, float]) -> None:
             buffer_indicator.update(
                 f"{cache['fw-bytes']:,} bytes buffered ({cache['cache-duration']:.2f}s)"
             )
 
         self.player.register_callback(
-            "time-pos", fn=lambda name, value: update_progress(value)
+            "time-pos", fn=lambda value: update_progress(utils.expect(value, float))
         )
         self.player.register_callback(
-            "duration", fn=lambda name, value: update_duration(value)
+            "duration", fn=lambda value: update_duration(utils.expect(value, float))
         )
         self.player.register_callback(
-            "demuxer-cache-state", fn=lambda name, value: update_cache(value)
+            "demuxer-cache-state",
+            fn=lambda value: update_cache(value),  # pyright: ignore[reportArgumentType]
         )
 
         self.player.play()

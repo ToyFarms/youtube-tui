@@ -3,17 +3,22 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.widgets import Input
 from textual.validation import Length
+from typing import final, override
 
 import shelve
 
 from view import YoutubeVideosView, YoutubePlayer
 from api import YoutubeAPI
+from persistent import shared_db
+
+import utils
 
 
 DEBUG_DATA = False
 
 
-class Youtube(App):
+@final
+class Youtube(App[None]):
     BINDINGS = [
         Binding("/", "focus_input", "Focus input"),
         Binding("right", "seek(5)", "Seek +5 seconds"),
@@ -22,7 +27,7 @@ class Youtube(App):
     ]
 
     CSS = """
-    Input {
+    #yt-searchbar {
         dock: top;
         height: 1;
         border-top: none;
@@ -76,17 +81,19 @@ class Youtube(App):
     def __init__(self) -> None:
         super().__init__()
 
+    @override
     def compose(self) -> ComposeResult:
         yield Input(
             select_on_focus=False,
             validate_on=["submitted"],
             validators=[Length(minimum=1)],
+            classes="yt-searchbar",
         )
         yield YoutubeVideosView()
         yield YoutubePlayer()
 
     def action_focus_input(self) -> None:
-        self.query_one(Input).focus()
+        _ = self.query_one(Input).focus()
 
     @on(Input.Submitted)
     @work
@@ -107,12 +114,15 @@ class Youtube(App):
                 with shelve.open("dummy_data.db", "r") as f:
                     video_list.videos = f["videos"]
             else:
-                video_list.videos = await YoutubeAPI.search_async(ev.value)
+                video_list.videos = await YoutubeAPI.search_async(
+                    ev.value,
+                    max_results=utils.expect(shared_db.get("max_results", 5), int),
+                )
         finally:
             video_list.loading = False
             input.disabled = False
 
-        video_list.focus()
+        _ = video_list.focus()
 
     @on(YoutubeVideosView.RequestPlay)
     def play(self, ev: YoutubeVideosView.RequestPlay) -> None:

@@ -1,14 +1,18 @@
+# mypy: disable-error-code="import-untyped"
+# pyright: reportMissingTypeStubs=false, reportUnknownMemberType=false
+
 from yt_dlp import YoutubeDL
 
 import asyncio
 
 from model import YoutubeVideo
 from image import NetworkImage
+import utils
 
 
 class YoutubeAPI:
     @staticmethod
-    def get_media_url(url_or_id: str) -> None:
+    def get_media_url(url_or_id: str) -> str:
         ydl_opts = {
             "format": "bestaudio",
             "quiet": True,
@@ -16,8 +20,10 @@ class YoutubeAPI:
         }
 
         with YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url_or_id, download=False)
-            return info_dict["url"]
+            info_dict = utils.expect(
+                ydl.extract_info(url_or_id, download=False), dict[str, object]
+            )
+            return utils.expect(info_dict.get("url", ""), str)
 
     @staticmethod
     async def search_async(query: str, max_results: int = 5) -> list[YoutubeVideo]:
@@ -26,6 +32,7 @@ class YoutubeAPI:
 
     @staticmethod
     def search(query: str, max_results: int = 5) -> list[YoutubeVideo]:
+        x = utils.expect
         if not query:
             return []
 
@@ -36,51 +43,54 @@ class YoutubeAPI:
         }
 
         with YoutubeDL(options) as ydl:
-            info = ydl.extract_info(search_query, download=False)
+            info = x(ydl.extract_info(search_query, download=False), dict[str, object])
 
         videos: list[YoutubeVideo] = []
 
-        if isinstance(info, dict):
-            entries = info.get("entries", [])
-            print(entries)
-            for entry in entries:
-                status = {
-                    "is_live": YoutubeVideo.Status.IS_LIVE,
-                    "was_live": YoutubeVideo.Status.WAS_LIVE,
-                }.get(entry.get("live_status"), YoutubeVideo.Status.NOT_LIVE)
+        entries = x(info.get("entries", []), list[dict[str, object]])
+        for entry in entries:
+            status = YoutubeVideo.Status.NOT_LIVE
+            status_str = entry.get("live_status")
 
-                nb_views = 0
-                if status == YoutubeVideo.Status.IS_LIVE:
-                    nb_views = entry.get("concurrent_view_count", 0)
-                else:
-                    nb_views = entry.get("view_count", 0)
+            if status_str == "is_live":
+                status = YoutubeVideo.Status.IS_LIVE
+            elif status_str == "was_live":
+                status = YoutubeVideo.Status.WAS_LIVE
 
-                thumbnails: list[NetworkImage] = []
-                for thumbnail in entry.get("thumbnails", []):
-                    if not (url := thumbnail.get("url")):
-                        continue
+            nb_views = 0
+            if status == YoutubeVideo.Status.IS_LIVE:
+                nb_views = x(entry.get("concurrent_view_count", 0), int)
+            else:
+                nb_views = x(entry.get("view_count", 0), int)
 
-                    thumbnails.append(
-                        NetworkImage(
-                            url=url,
-                            width=thumbnail.get("width", 0),
-                            height=thumbnail.get("height", 0),
-                        )
-                    )
+            thumbnails: list[NetworkImage] = []
+            for thumbnail in x(entry.get("thumbnails", []), list[dict[str, int | str]]):
+                if not (url := x(thumbnail.get("url"), str)):
+                    continue
 
-                videos.append(
-                    YoutubeVideo(
-                        title=entry.get("title", ""),
-                        id=entry.get("id", ""),
-                        channel=entry.get("channel", ""),
-                        channel_id=entry.get("channel_id", ""),
-                        uploader_id=entry.get("uploader_id", ""),
-                        channel_is_verified=entry.get("channel_is_verified", False),
-                        view_count=nb_views,
-                        live=status,
-                        duration=entry.get("duration") or 0,
-                        thumbnails=thumbnails,
+                thumbnails.append(
+                    NetworkImage(
+                        url=url,
+                        width=x(thumbnail.get("width", 0), int),
+                        height=x(thumbnail.get("height", 0), int),
                     )
                 )
+
+            videos.append(
+                YoutubeVideo(
+                    title=x(entry.get("title", ""), str),
+                    id=x(entry.get("id", ""), str),
+                    channel=x(entry.get("channel", ""), str),
+                    channel_id=x(entry.get("channel_id", ""), str),
+                    uploader_id=x(entry.get("uploader_id", ""), str),
+                    channel_is_verified=x(
+                        entry.get("channel_is_verified", False), bool
+                    ),
+                    view_count=x(nb_views, int),
+                    live=status,
+                    duration=x(entry.get("duration") or 0, int),
+                    thumbnails=thumbnails,
+                )
+            )
 
         return videos

@@ -1,3 +1,7 @@
+# pyright: reportUnknownArgumentType=false, reportUnknownMemberType=false
+
+from typing import final, TypedDict
+
 import sqlite3
 import requests
 import io
@@ -7,6 +11,8 @@ import aiohttp
 from PIL import Image
 from datetime import datetime
 from dataclasses import dataclass
+
+import utils
 
 
 @dataclass
@@ -47,8 +53,10 @@ class NetworkImage:
         img = Image.open(io.BytesIO(image_data))
         if img.size != (self.width, self.height):
             raise ValueError(
-                f"Image dimensions mismatch. Expected {self.width}x{self.height}, "
-                f"got {img.size[0]}x{img.size[1]}"
+                (
+                    f"Image dimensions mismatch. Expected {self.width}x{self.height}, "
+                    f"got {img.size[0]}x{img.size[1]}"
+                )
             )
 
         cache_manager.update_cache(
@@ -90,8 +98,10 @@ class NetworkImage:
         img = Image.open(io.BytesIO(image_data))
         if img.size != (self.width, self.height):
             raise ValueError(
-                f"Image dimensions mismatch. Expected {self.width}x{self.height}, "
-                f"got {img.size[0]}x{img.size[1]}"
+                (
+                    f"Image dimensions mismatch. Expected {self.width}x{self.height}, "
+                    f"got {img.size[0]}x{img.size[1]}"
+                )
             )
 
         cache_manager.update_cache(
@@ -104,6 +114,7 @@ class NetworkImage:
         return img
 
 
+@final
 class ImageCache:
     def __init__(self, db_path: str = "image_cache.db"):
         self.db_path = db_path
@@ -111,7 +122,7 @@ class ImageCache:
 
     def _init_db(self) -> None:
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
+            _ = conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS images (
                     url TEXT PRIMARY KEY,
@@ -133,9 +144,13 @@ class ImageCache:
                 "SELECT image_data, etag, last_modified FROM images WHERE url = ?",
                 (url,),
             )
-            result = cursor.fetchone()
+            result = utils.expect(cursor.fetchone(), list[object])
             if result:
-                return result[0], result[1], result[2]
+                return (
+                    utils.expect(result[0], bytes),
+                    utils.expect(result[1], str),
+                    utils.expect(result[2], str),
+                )
         return None
 
     def update_cache(
@@ -148,7 +163,7 @@ class ImageCache:
         image_hash = hashlib.md5(image_data).hexdigest()
 
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
+            _ = conn.execute(
                 """
                 INSERT OR REPLACE INTO images 
                 (url, etag, last_modified, width, height, image_data, downloaded_at, hash)
@@ -169,10 +184,16 @@ class ImageCache:
 
     def clear_cache(self) -> None:
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute("DELETE FROM images")
+            _ = conn.execute("DELETE FROM images")
             conn.commit()
 
-    def get_cache_stats(self) -> dict:
+    class CacheStats(TypedDict):
+        total_images: int
+        total_size_bytes: int
+        oldest_image: str
+        newest_image: str
+
+    def get_cache_stats(self) -> CacheStats:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 """
@@ -184,10 +205,10 @@ class ImageCache:
                 FROM images
             """
             )
-            stats = cursor.fetchone()
+            stats = utils.expect(cursor.fetchone(), list[object])
             return {
-                "total_images": stats[0],
-                "total_size_bytes": stats[1],
-                "oldest_image": stats[2],
-                "newest_image": stats[3],
+                "total_images": utils.expect(stats[0], int),
+                "total_size_bytes": utils.expect(stats[1], int),
+                "oldest_image": utils.expect(stats[2], str),
+                "newest_image": utils.expect(stats[3], str),
             }

@@ -1,4 +1,8 @@
+# pyright: reportExplicitAny=false, reportAny=false
+
+from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Any
 
 import os
 import sys
@@ -29,7 +33,7 @@ def format_time(seconds: float) -> str:
     hours, minutes = divmod(minutes, 60)
     days, hours = divmod(hours, 24)
 
-    parts = []
+    parts: list[str] = []
 
     if days > 0:
         parts.extend([str(days), f"{hours:02d}", f"{minutes:02d}", f"{secs:02d}"])
@@ -46,7 +50,7 @@ def format_time(seconds: float) -> str:
     return ":".join(parts)
 
 
-def format_number(number: float) -> None:
+def format_number(number: float) -> str:
     """
     Format number with K/M/B suffixes and appropriate decimal places.
 
@@ -85,15 +89,20 @@ def format_number(number: float) -> None:
 
 # https://github.com/spatialaudio/python-sounddevice/issues/11
 @contextmanager
-def suppress_portaudio_error() -> None:
+def suppress_portaudio_error() -> Generator[None, None, None]:
     devnull = os.open(os.devnull, os.O_WRONLY)
     old_stderr = os.dup(2)
-    sys.stderr.flush()
-    os.dup2(devnull, 2)
+    _ = sys.stderr.flush()
+    _ = os.dup2(devnull, 2)
     os.close(devnull)
 
     try:
         yield
     finally:
-        os.dup2(old_stderr, 2)
+        _ = os.dup2(old_stderr, 2)
         os.close(old_stderr)
+
+
+# shuts pyright
+def expect[T](value: Any, _: type[T]) -> T:
+    return value

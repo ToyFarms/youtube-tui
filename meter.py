@@ -1,14 +1,12 @@
 from textual.reactive import Reactive
 from textual.widget import Widget
-from textual.widgets import Label
-from typing import Literal
+from typing import Literal, final
 from rich.segment import Segment, Segments
-from rich.console import RenderableType, Console, ConsoleOptions, Style
+from rich.console import RenderResult, RenderableType, Console, ConsoleOptions
+from rich.style import Style
 from rich.color import Color
 
-from utils import format_time
-
-
+@final
 class MeterRenderable:
     HBLOCKS = "█▉▊▋▌▍▎ "
     BLOCK_RESOLUTION = 8
@@ -25,14 +23,14 @@ class MeterRenderable:
         self.barcolor = barcolor
         self.bgcolor = bgcolor
 
-        self._prev_fill = 0
-        self.segments = []
+        self._prev_fill = 0.0
+        self.segments: list[Segment] = []
 
     def __rich_console__(
         self,
         console: Console,
         options: ConsoleOptions,
-    ) -> RenderableType:
+    ) -> RenderResult:
         width = options.max_width or console.width
 
         if self.max == float("inf"):
