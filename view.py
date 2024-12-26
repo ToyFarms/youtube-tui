@@ -9,6 +9,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import HorizontalGroup, VerticalGroup
 from textual.css.scalar import Scalar
+from textual.validation import Number, Validator
 from textual.widget import Widget
 from textual.widgets import (
     Link,
@@ -16,7 +17,9 @@ from textual.widgets import (
     ListItem,
     Label,
     Button,
+    Input,
 )
+from textual.screen import ModalScreen
 from textual_image.renderable import Image as AutoRenderable
 from textual_image.widget._base import Image
 from PIL import Image as PILImage
@@ -25,6 +28,7 @@ from image import NetworkImage
 from model import YoutubeVideo
 from audio import AudioPlayer
 from meter import Meter
+from persistent import shared_db
 
 import utils
 
@@ -275,3 +279,32 @@ class YoutubePlayer(Widget):
         )
 
         self.player.play()
+
+
+@final
+class SettingPopup(ModalScreen[None]):
+    DEFAULT_CSS = """
+    SettingPopup {
+        align: center middle;
+    }
+    """
+
+    BINDINGS = [Binding("esc", "dismiss()")]
+
+    @override
+    def compose(self) -> ComposeResult:
+        yield Label("Youtube max search")
+        yield Input(
+            id="yt-searchmax",
+            classes="yt-setting",
+            validators=[Number(0)],
+            restrict=r"\d*",
+            placeholder="Youtube max search",
+            value=f"{utils.expect(shared_db.get("max_search", 0), int)}",
+            select_on_focus=False,
+        )
+
+    @on(Input.Submitted, "#yt-searchmax")
+    def handle_submit(self, ev: Input.Submitted) -> None:
+        shared_db.set("max_search", ev.value)
+        _ = self.dismiss()

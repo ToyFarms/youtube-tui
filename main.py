@@ -7,7 +7,7 @@ from typing import final, override
 
 import shelve
 
-from view import YoutubeVideosView, YoutubePlayer
+from view import YoutubeVideosView, YoutubePlayer, SettingPopup
 from api import YoutubeAPI
 from persistent import shared_db
 
@@ -24,6 +24,7 @@ class Youtube(App[None]):
         Binding("right", "seek(5)", "Seek +5 seconds"),
         Binding("left", "seek(-5)", "Seek -5 seconds"),
         Binding("space", "toggle_playback", "Toggle play/pause"),
+        Binding(":", "open_setting", "Open setting"),
     ]
 
     CSS = """
@@ -32,6 +33,13 @@ class Youtube(App[None]):
         height: 1;
         border-top: none;
         border-bottom: none;
+    }
+
+    .yt-setting {
+        height: 1;
+        border-top: none;
+        border-bottom: none;
+        width: 30%
     }
 
     .yt-maintext {
@@ -92,10 +100,14 @@ class Youtube(App[None]):
         yield YoutubeVideosView()
         yield YoutubePlayer()
 
+    @work
+    async def action_open_setting(self) -> None:
+        await self.push_screen_wait(SettingPopup())
+
     def action_focus_input(self) -> None:
         _ = self.query_one(Input).focus()
 
-    @on(Input.Submitted)
+    @on(Input.Submitted, ".yt-searchbar")
     @work
     async def search(self, ev: Input.Submitted) -> None:
         if (
@@ -116,7 +128,7 @@ class Youtube(App[None]):
             else:
                 video_list.videos = await YoutubeAPI.search_async(
                     ev.value,
-                    max_results=utils.expect(shared_db.get("max_results", 5), int),
+                    max_results=utils.expect(shared_db.get("max_search", 5), int),
                 )
         finally:
             video_list.loading = False
