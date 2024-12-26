@@ -1,6 +1,7 @@
 # https://github.com/tconbeer/textual-textarea/blob/main/src/textual_textarea/path_input.py (modified)
 
 from __future__ import annotations
+import os
 import unicodedata
 
 from rich.highlighter import Highlighter
@@ -62,6 +63,11 @@ def split_path_valid_invalid(path_str: str) -> tuple[Path, str]:
     return current, invalid_part
 
 
+def render_path(path: Path) -> str:
+    ext = os.path.sep if path.exists() and path.is_dir() else ""
+    return f"{str(path.expanduser().resolve())}{ext}"
+
+
 class PathSuggester(Suggester):
     def __init__(self) -> None:
         super().__init__(use_cache=False, case_sensitive=True)
@@ -72,6 +78,8 @@ class PathSuggester(Suggester):
             return None
 
         valid, invalid = split_path_valid_invalid(value)
+        if not invalid:
+            return render_path(valid)
 
         entries = list(map(lambda x: x.name, valid.glob("*")))
 
@@ -79,9 +87,7 @@ class PathSuggester(Suggester):
         if not candidate:
             return None
 
-        final = valid / candidate[0]
-        ext = "/" if final.exists() and final.is_dir() else ""
-        return f"{str(final)}{ext}"
+        return render_path(valid / candidate[0])
 
 
 @final
@@ -172,4 +178,3 @@ class PathInput(Input):
             self._cursor_visible = True
         else:
             self._cursor_visible = not self._cursor_visible
-
