@@ -251,11 +251,6 @@ class YoutubePlayer(Widget):
         self.player.pause()
         self.query_one("#title", Label).update(f"[#aaaaaa]Playing:[/] {video.title}")
 
-        # url = YoutubeAPI.get_media_url(video.id)
-        # if not url:
-        #     self.notify(f"Could not get media url for {video.id!r}", severity="error")
-        #     return
-
         self.player.update(f"https://youtube.com/watch?v={video.id}")
 
         progress = self.query_one(YoutubeProgress)
@@ -313,11 +308,28 @@ class SettingPopup(ModalScreen[None]):
             )
 
             yield Label("yt-dlp output dir")
-            yield PathInput(id="yt-dlp-outdir", classes="yt-setting")
+            yield PathInput(
+                id="ytdlp-outdir",
+                classes="yt-setting",
+                file_okay=False,
+                value=utils.expect(shared_db.get("outdir", ""), str),
+            )
 
-    @on(PathInput.Changed, "#ytdlp-outdir")
-    def handle_change(self, ev: Input.Changed) -> None:
-        pass
+    @on(PathInput.Submitted, "#ytdlp-outdir")
+    def handle_change(self, ev: Input.Submitted) -> None:
+        if ev.validation_result and not ev.validation_result.is_valid:
+            desc = ""
+            if ev.validation_result.failure_descriptions:
+                desc = ev.validation_result.failure_descriptions[0]
+
+            self.notify(
+                title=f"Path '{ev.value}' is not valid",
+                message=desc,
+                severity="warning",
+            )
+            return
+
+        shared_db.set("outdir", ev.value)
 
     def handle_input_submit(self, ev: Input.Submitted) -> None:
         _ = ev

@@ -64,8 +64,9 @@ def split_path_valid_invalid(path_str: str) -> tuple[Path, str]:
 
 
 def render_path(path: Path) -> str:
+    path = path.expanduser().resolve()
     ext = os.path.sep if path.exists() and path.is_dir() else ""
-    return f"{str(path.expanduser().resolve())}{ext}"
+    return f"{str(path)}{ext}"
 
 
 class PathSuggester(Suggester):
@@ -78,8 +79,10 @@ class PathSuggester(Suggester):
             return None
 
         valid, invalid = split_path_valid_invalid(value)
-        if not invalid:
+        if not invalid and not str(valid) == "/":
             return render_path(valid)
+        elif invalid == "~":
+            return render_path(Path("~"))
 
         entries = list(map(lambda x: x.name, valid.glob("*")))
 
