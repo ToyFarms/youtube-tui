@@ -9,7 +9,6 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import HorizontalGroup, VerticalGroup
 from textual.css.scalar import Scalar
-from textual.validation import Number, Validator
 from textual.widget import Widget
 from textual.widgets import (
     Link,
@@ -178,7 +177,11 @@ class YoutubeProgress(Widget):
 
     def watch_value(self, value: float) -> None:
         self.meter.value = value
-        self.query_one(".meter-val", Label).update(utils.format_time(value))
+        meter = self.query_one(".meter-val", Label)
+        if not meter:
+            return
+
+        meter.update(utils.format_time(value))
 
     def watch_max(self, max: float) -> None:
         self.meter.max = max
