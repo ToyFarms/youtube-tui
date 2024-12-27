@@ -66,6 +66,7 @@ class YoutubeVideosView(ListView):
         selected = expect(self.highlighted_child, YoutubeVideoView)
         if not selected:
             self.notify("Nothing is selected", severity="warning")
+            return
 
         _ = selected.action_download()
 
