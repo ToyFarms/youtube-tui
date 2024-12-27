@@ -1,4 +1,19 @@
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](http://www.wtfpl.net/about/)
+![Preview](images/youtube-tui.png)
+
+# youtube-tui
+
+A TUI application to interface with youtube; complete with thumbnail view, and an audio player.
+
+Built because youtube took too long to load.
+
+# Used in this project
+
+- [Textual](https://github.com/Textualize/textual): a TUI library
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp): for access to YouTube api
+- [python-mpv](https://github.com/jaseg/python-mpv): python binding for mpv C api
+- [textual-image](https://github.com/lnqs/textual-image): for image rendering
+- [path_input](https://github.com/tconbeer/textual-textarea/blob/main/src/textual_textarea/path_input.py): for path autocompletion
 
 # License
 
