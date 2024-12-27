@@ -66,10 +66,19 @@ class Youtube(App[None]):
 
     .gap {
         width: 2;
+        height: 100%;
+        background: $surface;
+        background-tint: $foreground 5%;
+        margin-right: 1;
     }
 
     ImageView {
         width: auto;
+
+        Image {
+            width: auto;
+            height: auto;
+        }
     }
 
     YoutubePlayer {
@@ -171,7 +180,9 @@ class Youtube(App[None]):
         finally:
             video_list.loading = False
             input.disabled = False
-            _ = input.focus()
+
+        _ = video_list.focus()
+        self.simulate_key("j")
 
     @on(YoutubeVideosView.RequestPlay)
     def play(self, ev: YoutubeVideosView.RequestPlay) -> None:

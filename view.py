@@ -25,6 +25,7 @@ from textual.widgets import (
 from textual.screen import ModalScreen
 from textual_image.renderable import Image as AutoRenderable
 from textual_image.widget._base import Image
+from textual_image.widget import Image as TexImage
 from PIL import Image as PILImage
 
 from api import YoutubeAPI
@@ -86,25 +87,27 @@ class YoutubeVideosView(ListView):
 
 @final
 class ImageView(Image, Renderable=AutoRenderable):
-    def __init__(self, height: int) -> None:
+    def __init__(
+        self,
+        height: int = 10,
+    ) -> None:
         super().__init__()
 
         self.img_height = height
-        self.styles.height = height
 
     @work
     async def update_image(self, image: PILImage.Image | NetworkImage) -> None:
-        self.loading = True
-
-        if isinstance(image, PILImage.Image):
-            self.image = image
-        else:
-            self.image = await image.fetch_async()
+        i = image if isinstance(image, PILImage.Image) else await image.fetch_async()
+        self.image = i
 
         self.styles.width = Scalar.parse("auto")
         self.styles.height = self.img_height
 
-        self.loading = False
+        _ = self.refresh(recompose=True)
+
+    @override
+    def compose(self) -> ComposeResult:
+        yield TexImage(self.image)
 
 
 @final
