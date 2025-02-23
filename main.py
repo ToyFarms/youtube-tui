@@ -21,6 +21,11 @@ DEBUG_DATA = False
 class Youtube(App[None]):
     BINDINGS = [
         Binding("/", "focus_input", "Focus input"),
+        Binding(
+            "ctrl+l",
+            "focus_input_and_reset",
+            "Focus input while deleting the value",
+        ),
         Binding("right", "seek(5)", "Seek +5 seconds"),
         Binding("left", "seek(-5)", "Seek -5 seconds"),
         Binding("space", "toggle_playback", "Toggle play/pause"),
@@ -153,6 +158,11 @@ class Youtube(App[None]):
 
     def action_focus_input(self) -> None:
         _ = self.query_one(Input).focus()
+
+    def action_focus_input_and_reset(self) -> None:
+        input = self.query_one(Input)
+        input.clear()
+        _ = input.focus()
 
     @on(Input.Submitted, ".yt-searchbar")
     @work
