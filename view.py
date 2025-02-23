@@ -28,6 +28,38 @@ from textual_image.widget._base import Image
 from textual_image.widget import Image as TexImage
 from PIL import Image as PILImage
 
+try:
+    from pykakasi import kakasi
+
+    kks = kakasi()
+
+    kks.setMode("J", "aF")
+    kks.setMode("H", "aF")
+    kks.setMode("K", "aF")
+    conv = kks.getConverter()
+except ModuleNotFoundError:
+    kks = None
+
+
+def jp_romanize(text: str) -> str | None:
+    if not kks:
+        return None
+
+    final: list[str] = []
+    parts = kks.convert(text)
+    for part in parts:
+        final.append(f"{part["hepburn"]}")
+
+    return "".join(final)
+
+
+def to_furigana(text: str) -> str | None:
+    if not kks:
+        return
+
+    return conv.do(text)
+
+
 from api import YoutubeAPI
 from image import NetworkImage
 from model import YoutubeVideo
@@ -169,7 +201,9 @@ class YoutubeVideoView(ListItem):
             yield ImageView(self.item_size)
             yield Label(classes="gap")
             with VerticalGroup():
-                yield Label()
+                furigana_txt = to_furigana(self.video.title)
+                if furigana_txt:
+                    yield Label(f"{escape(furigana_txt)}", classes="yt-subtext")
                 yield Label(f"{escape(self.video.title)}", classes="yt-maintext")
                 with HorizontalGroup():
                     yield Link(
