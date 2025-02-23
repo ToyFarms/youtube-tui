@@ -22,7 +22,6 @@ class NetworkImage:
     height: int
 
     def __post_init__(self) -> None:
-        print(self.url)
         if not re.match(r"http(s)?://", self.url):
             self.url = join_overlap("https://", self.url)
 
