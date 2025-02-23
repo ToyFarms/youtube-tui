@@ -153,3 +153,11 @@ def resize_image(
         return resized
 
     return image
+
+
+def join_overlap(a: str, b: str) -> str:
+    overlap = 0
+    for i in range(1, min(len(a), len(b)) + 1):
+        if a[-i:] == b[:i]:
+            overlap = i
+    return a + b[overlap:]
