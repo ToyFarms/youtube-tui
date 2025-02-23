@@ -5,6 +5,7 @@ import requests
 import io
 import hashlib
 import aiohttp
+import re
 
 from PIL import Image
 from datetime import datetime
@@ -12,6 +13,14 @@ from dataclasses import dataclass
 from typing import final, TypedDict
 
 from utils import expect
+
+
+def join_overlap(a: str, b: str) -> str:
+    overlap = 0
+    for i in range(1, min(len(a), len(b)) + 1):
+        if a[-i:] == b[:i]:
+            overlap = i
+    return a + b[overlap:]
 
 
 @dataclass
@@ -43,6 +52,9 @@ class NetworkImage:
                                 return Image.open(io.BytesIO(image_data))
                 except aiohttp.ClientError:
                     return Image.open(io.BytesIO(image_data))
+
+        if not re.match(r"http(s)?://", self.url):
+            self.url = join_overlap("https://", self.url)
 
         async with aiohttp.ClientSession() as session:
             async with session.get(self.url) as response:
