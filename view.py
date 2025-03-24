@@ -178,11 +178,16 @@ class YoutubeVideoView(ListItem):
 
         self.download_status = self.DOWNLOAD_PROCESS
 
-        await YoutubeAPI.download_async(
-            self.video.id,
-            shared_db.get("format", "bestaudio[ext=m4a]"),
-            shared_db.get("outdir", "."),
-        )
+        try:
+            await YoutubeAPI.download_async(
+                self.video.id,
+                shared_db.get("format", "bestaudio[ext=m4a]"),
+                shared_db.get("outdir", "."),
+            )
+        except:
+            self.notify(f"Failed to download {self.video.title}")
+            self.download_status = self.DOWNLOAD_IDLE
+            return
 
         self.download_status = self.DOWNLOAD_COMPLETED
 
